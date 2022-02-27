@@ -28,49 +28,11 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . "/externallib.php");
 
-/**
- * The practicalgrader class.
- *
- * @package   local_practicalgrader
- * @copyright 2019 - 2021 Mukudu Ltd - Bham UK
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 class practicalgrader extends \external_api {
-
-    /**
-     * The return values from this webservice call.
-     *
-     * @return \external_value
-     */
-    public static function save_practicalgrader_grade_returns() {
-        return new \external_value(PARAM_TEXT, 'result of operation');
-    }
-
-    /**
-     * The parameters expected for the webservice call.
-     *
-     * @return \external_function_parameters
-     */
-    public static function save_practicalgrader_grade_parameters() {
-        return new \external_function_parameters( array(
-                'activityidnumber' => new \external_value(PARAM_ALPHANUMEXT, 'activity idnumber'),
-                'studentemail' => new \external_value(PARAM_EMAIL, 'student email address'),
-                'activitygrade' => new \external_value(PARAM_RAW, 'activity grade'),
-            )
-        );
-    }
-
-    /**
-     *  The actual working code for the webservice call.
-     *
-     * @param string $activityidnumber - the activity to be graded's idnumber value.
-     * @param string $studentemail - the student's email address to identify the user being graded.
-     * @param mixed $activitygrade - the grade to be stored.
-     * @return string OK - errors are thrown as Exceptions.
-     */
+    
     public static function save_practicalgrader_grade($activityidnumber, $studentemail, $activitygrade) {
         global $DB, $USER;
-
+        
         // Validate the inputs.
         $params = self::validate_parameters(self::save_practicalgrader_grade_parameters(),
             array(
@@ -78,16 +40,16 @@ class practicalgrader extends \external_api {
                 'studentemail' => $studentemail,
                 'activitygrade' => $activitygrade
             )
-        );
-
+            );
+        
         // Identify the activity.
         $activitymodule = $DB->get_record('course_modules', array('idnumber' => $params['activityidnumber']), 'id, idnumber');
         if ($activitymodule) {
             list ($course, $cm) = get_course_and_cm_from_cmid($activitymodule->id);
             $module = $cm->modname;
-
+            
             if (plugin_supports('mod', $module, FEATURE_GRADE_HAS_GRADE)) {
-
+                
                 // Check the user has grading capabilities.
                 $context = \context_module::instance($cm->id);
                 $capability = 'mod/' . $module . ':grade';
@@ -104,11 +66,11 @@ class practicalgrader extends \external_api {
                             (object) array('username' => $USER->username, 'capability' => $capability));
                     }
                 }
-
+                
                 $activity = $DB->get_record($module, array('id' => $cm->instance));
                 // Add the required additional field.
                 $activity->cmidnumber = $activitymodule->idnumber;
-
+                
                 // Identify the student user and determine if enrolled on course.
                 if ($students = search_users($course->id, 0, $params['studentemail'])) {
                     if (count($students) > 1) {
@@ -119,10 +81,10 @@ class practicalgrader extends \external_api {
                 } else {
                     print_error('errornocourseuser', 'local_practicalgrader', $params['studentemail']);
                 }
-
-                // That should have loaded the module.
+                
+                // All modules _grade_item_update functions will have been loaded already.
                 $function = $module . '_grade_item_update';
-
+                
                 $grades = array(
                     'userid' => $studentid,
                     'rawgrade' => $params['activitygrade'],
@@ -130,15 +92,15 @@ class practicalgrader extends \external_api {
                     'datesubmitted' => '',
                     'dategraded' => time()
                 );
-
+                
                 // Add the grade to the grade book.
-
+                
                 // There appears to be a problem sometimes with some output from the gradebook uses ...
                 // ... mtrace to output text - new grades?
                 ob_start();
                 $result = $function($activity, $grades);
                 ob_end_clean();
-
+                
                 switch ($result)  {
                     case GRADE_UPDATE_FAILED :
                         return get_string('errorgradeupdate', 'local_practicalgrader');
@@ -150,14 +112,37 @@ class practicalgrader extends \external_api {
                         return get_string('errorgrademultiple', 'local_practicalgrader');
                         break;
                 }
-
+                
             } else {
                 print_error('errornomodulegrades', 'local_practicalgrader');
             }
         } else {
             print_error('errornoactivity', 'local_practicalgrader');
         }
-
+        
         return 'OK';
     }
+    
+    /*
+     Some external description classes are defined in /lib/externallib.php to help with the parameters
+     and return definitions, namely:
+     • external_value: scalar value
+     • external_single_structure: associative arrays
+     • external_multiple_structure: bulk arrays
+     • external_function_parameters: function parameters
+     */
+    
+    public static function save_practicalgrader_grade_parameters() {
+        return new \external_function_parameters( array(
+            'activityidnumber' => new \external_value(PARAM_ALPHANUMEXT, 'activity idnumber'),
+            'studentemail' => new \external_value(PARAM_EMAIL, 'student email address'),
+            'activitygrade' => new \external_value(PARAM_RAW, 'activity grade'),
+        )
+            );
+    }
+    
+    public static function save_practicalgrader_grade_returns() {
+        return new \external_value(PARAM_TEXT, 'result of operation');
+    }
+    
 }

@@ -36,4 +36,3 @@ $string['errorgradeupdate'] = 'Error: The grade could not be updated';
 $string['errorgradelocked'] = 'Error: The grade has been locked';
 $string['errorgrademultiple'] = 'Error: Too many grades returned';
 $string['errornoactivity'] = 'Error: No such grading activity';
-

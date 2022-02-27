@@ -27,18 +27,27 @@ defined('MOODLE_INTERNAL') || die();
 $functions = array(
     'local_practicalgrader_save' => array(
         'classname'   => '\local_practicalgrader\external\practicalgrader',
+        /* 'classpath': old style – if a non-autoloading namespaced classname is defined,
+         this is the path to the class file and, if that is not defined, externallib.php is used */
         'methodname'  => 'save_practicalgrader_grade',
         'description' => 'Saves an practical activity feedback and grade',
         'type'        => 'write',
+        // 'ajax' - true or false depending on whether the webservice function is callable via ajax //
+        // 'capabilities' - an array of capabilities required by the function
+        /* 'services' - optional since Moodle 3.1 – an array of built-in services (by shortname)
+         where the function will be included */
     ),
 );
 
 $services = array(
     'Practical_Grader' => array(
-        'functions' => array('local_practicalgrader_save'),
-        'restrictedusers' => 0,
-        'requiredcapability' => 'local/practicalgrader:grade',
+        'functions' => array('local_practicalgrader_save'), //an array of the defined functions attached to this service
+        'restrictedusers' => 0, //if enabled, the Moodle administrator must link some user to this service
+        'requiredcapability' => 'local/practicalgrader:grade',  // the webservice user needs this capability to access
         'enabled' => 1, // Default enabled.
-        'shortname' => 'Practical_Grades' // For tokens.
+        'shortname' => 'Practical_Grades' // optional, but needed if restrictedusers is set to allow logins
+        // 'downloadfiles' - true/false – allow file downloads
+        // 'uploadfiles' - true/false – allow file uploads
     )
 );
+
